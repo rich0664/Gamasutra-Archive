@@ -1,6 +1,7 @@
 name: Run Gamasutra Scraper
 
 on:
+  workflow_dispatch:
 jobs:
   run-scraper:
     runs-on: ubuntu-latest
