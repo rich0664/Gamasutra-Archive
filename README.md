@@ -19,7 +19,7 @@ How to Use
 
 Tech Stuff
 ----------
-Mainly used **sql.js-httpvfs** https://github.com/phiresky/sql.js-httpvfs for the website side of things, hosted on github pages with a simple python script updating the database occasionally
+Mainly used **[sql.js-httpvfs](https://github.com/phiresky/sql.js-httpvfs)**  for the website side of things, hosted on github pages with a simple python script updating the database occasionally
 
 
 
