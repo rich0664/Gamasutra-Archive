@@ -23,6 +23,9 @@ jobs:
       - name: Run scraper
         run: python GamasutraScraper.py
 
+      - name: List directory contents
+        run: ls -R
+
       - name: Commit database changes
         run: |
           git config --local user.name "github-actions[bot]"
