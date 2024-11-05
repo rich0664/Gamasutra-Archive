@@ -15,7 +15,7 @@ def format_date(date_str):
         return None
 
 # Connect to SQLite database and create table if it doesn't exist
-conn = sqlite3.connect('gamedeveloper_blogs.db')
+conn = sqlite3.connect('Data\gamedeveloper_blogs.db')
 cursor = conn.cursor()
 
 # Create table with indexed columns
@@ -111,4 +111,4 @@ with open('last_scrape_info.txt', 'w') as file:
     file.write(f"Last updated on: {last_scrape_date}. Total posts in database: {total_posts}.\n")
 
 conn.close()
-print("Data saved to gamedeveloper_blogs.db")
+print("Data saved to Data\gamedeveloper_blogs.db")
