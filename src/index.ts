@@ -26,6 +26,20 @@ nightModeToggle.addEventListener("change", () => {
     localStorage.setItem("nightMode", String(nightModeToggle.checked));
 });
 
+
+// Fetch and display last scrape info
+fetch("last_scrape_info.txt")
+    .then(response => response.text())
+    .then(text => {
+        const header = document.getElementById("header");
+        if (header) {
+            const scrapeInfo = document.createElement("p");
+            scrapeInfo.textContent = text;
+            header.appendChild(scrapeInfo);
+        }
+    })
+    .catch(error => console.error("Failed to load last scrape info:", error));
+
 // Save thumbnail visibility state to localStorage when toggled
 
 
@@ -105,6 +119,12 @@ function displayPosts(posts: any[], searchTerm: string, append = false) {
 
     const showThumbnails = thumbnailToggle.checked; // Get checkbox state
 
+    // Display a message if there are no results
+    if (posts.length === 0) {
+        listElement.innerHTML = "<p>No results found.</p>";
+        return;
+    }
+
     posts.forEach((post: any) => {
         const postElement = document.createElement("div");
         postElement.className = "post";
@@ -112,14 +132,14 @@ function displayPosts(posts: any[], searchTerm: string, append = false) {
         const highlightedTitle = highlightText(post.Title, searchTerm);
         const postLink = `<a href="${post.Link}" target="_blank" rel="noopener noreferrer">${highlightedTitle}</a>`;
 
-        // Conditionally include thumbnail based on checkbox state
+        // Conditionally include clickable thumbnail
         const thumbnailHtml = showThumbnails && post.Thumbnail
-        ? `<div class="thumbnail">
-             <a href="${post.Link}" target="_blank" rel="noopener noreferrer">
-                 <img src="${post.Thumbnail}" alt="Thumbnail" />
-             </a>
-           </div>`
-        : "";
+            ? `<div class="thumbnail">
+                 <a href="${post.Link}" target="_blank" rel="noopener noreferrer">
+                     <img src="${post.Thumbnail}" alt="Thumbnail" />
+                 </a>
+               </div>`
+            : "";
 
         postElement.innerHTML = `
             <div class="post-container">
@@ -136,7 +156,6 @@ function displayPosts(posts: any[], searchTerm: string, append = false) {
         listElement.appendChild(postElement);
     });
 }
-
 
 // Load results based on the query and reset offset when starting a new search
 async function loadResults(
