@@ -21,7 +21,7 @@ jobs:
           pip install requests
 
       - name: Run scraper
-        run: python Data/GamasutraScraper.py
+        run: python GamasutraScraper.py
 
       - name: Commit database changes
         run: |
