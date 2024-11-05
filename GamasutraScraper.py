@@ -15,7 +15,7 @@ def format_date(date_str):
         return None
 
 # Connect to SQLite database and create table if it doesn't exist
-conn = sqlite3.connect('Data\gamedeveloper_blogs.db')
+conn = sqlite3.connect('Data/gamedeveloper_blogs.db')
 cursor = conn.cursor()
 
 # Create table with indexed columns
