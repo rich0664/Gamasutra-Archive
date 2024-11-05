@@ -1,5 +1,5 @@
 # Gamasutra/GameDeveloper Developer Blog Archive
-================================
+------------------
 
 Hey there! 👋 I put together this **Gamasutra Developer Blog Archive** as a way to preserve some of the great blog content that used to live on Gamasutra. After the rebranding to GameDeveloper.com, a lot of the old links to those articles have broken and searching for the articles on gamedeveloper.com is not the easisest.
 This project is a little attempt to keep those resources accessible for devs who are still looking to learn from all that shared wisdom. You'll find articles on everything from game design to programming, production, art, and beyond.
@@ -18,7 +18,7 @@ The archive lets you:
 Tech Stuff
 ----------
 
-Mainly used **sql.js-httpvfs** https://github.com/phiresky/sql.js-httpvfs/issues/23 for the website side of things, hosted on github pages with a simple python script updating the database occasionally
+Mainly used **sql.js-httpvfs** https://github.com/phiresky/sql.js-httpvfs for the website side of things, hosted on github pages with a simple python script updating the database occasionally
 
 How to Use
 ----------
