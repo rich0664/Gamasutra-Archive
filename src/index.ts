@@ -37,7 +37,7 @@ async function initDbWorker() {
                 from: "inline",
                 config: {
                     serverMode: "full",
-                    url: "https://rich0664.github.io/Gamasutra-Archive/Data/gamedeveloper_blogs.db",
+                    url: "https://rich0664.github.io/Gamasutra-Archive//Data/gamedeveloper_blogs.db",
                     requestChunkSize: 4096,
                 },
             },
