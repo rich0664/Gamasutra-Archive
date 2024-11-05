@@ -1,10 +1,7 @@
 name: Run Gamasutra Scraper
 
 on:
-  schedule:
-    - cron: '0 0 * * *'  # Runs every day at midnight UTC
-  workflow_dispatch:  # Allows for manual triggering
-
+  push
 jobs:
   run-scraper:
     runs-on: ubuntu-latest
