@@ -23,8 +23,8 @@ jobs:
       - name: Run scraper
         run: python GamasutraScraper.py
 
-      - name: List directory contents
-        run: ls -R
+      - name: Show git diff output (for debugging)
+        run: git diff
 
       - name: Commit database changes
         run: |
