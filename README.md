@@ -13,13 +13,13 @@ The archive lets you:
 -   **Sort** the results -- by date, title, or category, ascending or descending, however you prefer.
 -   **Toggle Night Mode and Thumbnails** -- because why not
 
+How to Use
+----------
+**https://rich0664.github.io/Gamasutra-Archive/ go here, click on links, search stuff, find neat things and share them with others!**
 
 Tech Stuff
 ----------
-
 Mainly used **sql.js-httpvfs** https://github.com/phiresky/sql.js-httpvfs for the website side of things, hosted on github pages with a simple python script updating the database occasionally
 
-How to Use
-----------
-https://rich0664.github.io/Gamasutra-Archive/ go here, click on links, search stuff, find neat things and share them with others!
+
 
