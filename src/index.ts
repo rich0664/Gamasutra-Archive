@@ -114,17 +114,18 @@ function displayPosts(posts: any[], searchTerm: string, append = false) {
     const listElement = document.getElementById("postList");
     if (!listElement) return;
 
-    // Clear list if not appending
+    // Clear the list if not appending (initial load or new search)
     if (!append) listElement.innerHTML = "";
 
     const showThumbnails = thumbnailToggle.checked; // Get checkbox state
 
-    // Display a message if there are no results
-    if (posts.length === 0) {
+    // If there are no posts and it's not appending, show "No results found"
+    if (posts.length === 0 && !append) {
         listElement.innerHTML = "<p>No results found.</p>";
         return;
     }
 
+    // If there are posts, render them normally
     posts.forEach((post: any) => {
         const postElement = document.createElement("div");
         postElement.className = "post";
@@ -156,6 +157,7 @@ function displayPosts(posts: any[], searchTerm: string, append = false) {
         listElement.appendChild(postElement);
     });
 }
+
 
 // Load results based on the query and reset offset when starting a new search
 async function loadResults(
