@@ -1,0 +1,161 @@
+/* style.css */
+
+.lexend-deca{
+  font-family: "Lexend Deca", sans-serif;
+  font-optical-sizing: auto;
+  font-weight: 400;
+  font-style: normal;
+}
+
+
+:root {
+    --background-color: #f4f4f9;
+    --text-color: #333;
+    --header-background: #333;
+    --header-text-color: #fff;
+    --box-background: #fff;
+    --search-box-background: #fff;
+    --search-box-color: #333;
+    --border-color: #ddd;
+}
+
+body.dark-mode {
+    --background-color: #1e1e1e;
+    --text-color: #e0e0e0;
+    --header-background: #222;
+    --header-text-color: #e0e0e0;
+    --box-background: #333;
+    --search-box-background: #fff;
+    --search-box-color: #333;
+    --border-color: #444;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: var(--background-color);
+    color: var(--text-color);
+}
+
+#header {
+    padding: 20px;
+    background-color: var(--header-background);
+    color: var(--header-text-color);
+}
+
+#header h1 {
+    margin: 0;
+    font-size: 2em;
+}
+
+#header p {
+    margin: 5px 0;
+    font-size: 1em;
+    color: #ddd;
+}
+
+#searchContainer {
+    padding: 20px;
+    background-color: var(--box-background);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+#searchInput {
+    width: 100%;
+    padding: 10px 10px 10px 10px; /* Set padding on all sides */
+    margin: 10px 0;
+    border: 1px solid var(--border-color);
+    background-color: var(--search-box-background);
+    border-radius: 4px;
+    font-size: 16px;
+    color: var(--text-color);
+    box-sizing: border-box; /* Ensures the padding and border are included within the width */
+}
+
+
+#categorySelect,
+#sortSelect,
+#sortOrderSelect,
+#startDate,
+#endDate {
+    padding: 10px;
+    margin: 10px 0;
+    border: 1px solid var(--border-color);
+    background-color: var(--box-background);
+    border-radius: 4px;
+    font-size: 16px;
+    color: var(--text-color);
+}
+#dateContainer {
+    display: inline-block;
+
+}
+
+
+#thumbnailToggle {
+    margin-left: 5px;
+}
+#nightModeToggle {
+    margin-bottom: 20px;
+}
+
+#postList {
+    margin-top: 20px;
+    padding: 20px;
+    background-color: var(--box-background);
+
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+.post {
+    border-bottom: 1px solid #ddd;
+    padding: 10px 0;
+}
+
+.post-container {
+    display: flex;
+    align-items: center; /* Centers items vertically */
+    gap: 10px;
+}
+
+.thumbnail {
+    display: flex;
+    align-items: center; /* Centers image vertically within the thumbnail */
+    justify-content: center;
+}
+
+.thumbnail img {
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+    border-radius: 5px;
+}
+
+.post-content {
+    flex: 1;
+}
+
+.post h3 {
+    margin: 0;
+}
+.post h3 a {
+    color: var(--text-color);
+    text-decoration: none;
+}
+
+.post h3 a:hover {
+    text-decoration: underline;
+}
+
+.highlight {
+    background-color: yellow;
+    font-weight: bold;
+}
+
+.post p {
+    margin: 5px 0;
+    color: var(--text-color);
+}
