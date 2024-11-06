@@ -65,10 +65,10 @@ async function initDbWorker() {
 // Function to query posts based on search input, limit, and offset for pagination
 async function searchPosts(
     worker: any, query: string, limit = 20, offset = 0, sortColumn = "Date", sortOrder = "DESC",
-    category = "All", startDate = "", endDate = ""
+    category = "All", startDate = "", endDate = "", featured = "all"
 ) {
     let sqlQuery = `
-        SELECT Title, Authors, Date, Summary, CategoryName, Link, Thumbnail
+        SELECT Title, Authors, Date, Summary, CategoryName, Link, Thumbnail, Featured
         FROM posts
         WHERE (Title LIKE '%' || ? || '%' OR Summary LIKE '%' || ? || '%' OR Authors LIKE '%' || ? || '%')
     `;
@@ -86,6 +86,13 @@ async function searchPosts(
         sqlQuery += ` AND Date <= ?`;
     }
 
+    // Add featured filter based on the dropdown selection
+    if (featured === "featured") {
+        sqlQuery += ` AND Featured = 1`; // Featured as a boolean (1 for true)
+    } else if (featured === "not_featured") {
+        sqlQuery += ` AND Featured = 0`; // Not featured as boolean (0 for false)
+    }
+
     sqlQuery += ` ORDER BY ${sortColumn} ${sortOrder} LIMIT ? OFFSET ?`;
 
     // Collect parameters for the query
@@ -96,8 +103,10 @@ async function searchPosts(
     params.push(limit.toString(), offset.toString());
 
     const results = await worker.db.query(sqlQuery, params);
+    console.log(sqlQuery, params);
     return results;
 }
+
 
 
 
@@ -125,12 +134,13 @@ function displayPosts(posts: any[], searchTerm: string, append = false) {
         return;
     }
 
-    // If there are posts, render them normally
     posts.forEach((post: any) => {
         const postElement = document.createElement("div");
         postElement.className = "post";
 
-        const highlightedTitle = highlightText(post.Title, searchTerm);
+        // Add star if the post is featured
+        const title = post.Featured ? `⭐ ${post.Title}` : post.Title;
+        const highlightedTitle = highlightText(title, searchTerm);
         const postLink = `<a href="${post.Link}" target="_blank" rel="noopener noreferrer">${highlightedTitle}</a>`;
 
         // Conditionally include clickable thumbnail
@@ -159,14 +169,21 @@ function displayPosts(posts: any[], searchTerm: string, append = false) {
 }
 
 
+
 // Load results based on the query and reset offset when starting a new search
 async function loadResults(
-    worker: any, query: string, sortColumn = "Date", sortOrder = "DESC",
-    category = "All", startDate = "", endDate = ""
+    worker: any, 
+    query: string, 
+    sortColumn = "Date", 
+    sortOrder = "DESC",
+    category = "All", 
+    startDate = "", 
+    endDate = "", 
+    featured = "all" // Add the new parameter here
 ) {
     const postList = document.getElementById("postList");
     offset = 0;
-    const results = await searchPosts(worker, query, limit, offset, sortColumn, sortOrder, category, startDate, endDate);
+    const results = await searchPosts(worker, query, limit, offset, sortColumn, sortOrder, category, startDate, endDate, featured);
     displayPosts(results, query);
     if (postList) {
         postList.scrollTop = 0;
@@ -189,6 +206,9 @@ async function init() {
     const sortOrderSelect = document.getElementById("sortOrderSelect") as HTMLSelectElement;
 
     // Helper to reload results
+    const featuredSelect = document.getElementById("featuredSelect") as HTMLSelectElement;
+
+    // Helper to reload results
     const reloadResults = async () => {
         const query = searchInput.value;
         const sortColumn = sortSelect.value;
@@ -196,8 +216,11 @@ async function init() {
         const category = categorySelect.value;
         const startDate = startDateInput.value;
         const endDate = endDateInput.value;
-        await loadResults(worker, query, sortColumn, sortOrder, category, startDate, endDate);
+        const featured = featuredSelect.value;
+        await loadResults(worker, query, sortColumn, sortOrder, category, startDate, endDate, featured);
     };
+    
+    featuredSelect.addEventListener("change", reloadResults);
 
     searchInput.addEventListener("input", () => {
         clearTimeout(debounceTimeout);

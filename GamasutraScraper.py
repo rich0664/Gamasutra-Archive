@@ -28,7 +28,8 @@ cursor.execute('''
         Summary TEXT,
         Thumbnail TEXT,
         TimeToRead TEXT,
-        CategoryName TEXT
+        CategoryName TEXT,
+        Featured BOOLEAN
     )
 ''')
 
@@ -37,67 +38,92 @@ cursor.execute("CREATE INDEX IF NOT EXISTS idx_date ON posts(Date);")
 cursor.execute("CREATE INDEX IF NOT EXISTS idx_title ON posts(Title);")
 cursor.execute("CREATE INDEX IF NOT EXISTS idx_authors ON posts(Authors);")
 
-# Set up variables for duplicate page tracking
-consecutive_duplicate_pages = 0
-max_consecutive_duplicate_pages = 3  # Number of duplicate-only pages before stopping
+# Define URLs and featured flag
+sources = [
+    {
+        "url_template": "https://www.gamedeveloper.com/keyword/blogs?page={page_num}&_data=routes%2Fkeyword.%24slug",
+        "featured": False
+    },
+    {
+        "url_template": "https://www.gamedeveloper.com/keyword/featured-blogs?page={page_num}&_data=routes%2Fkeyword.%24slug",
+        "featured": True
+    }
+]
 
-# Loop through each page
-for page_num in range(1, 363):  # Adjust the range as needed
-    if consecutive_duplicate_pages >= max_consecutive_duplicate_pages:
-        print(f"Stopping after {consecutive_duplicate_pages} consecutive pages with duplicates only.")
-        break  # Stop fetching pages after threshold is reached
+# Loop through each source
+for source in sources:
+    page_num = 1
+    consecutive_duplicate_pages = 0
+    max_consecutive_duplicate_pages = 3
 
-    url = f"https://www.gamedeveloper.com/keyword/blogs?page={page_num}&_data=routes%2Fkeyword.%24slug"
-    max_retries = 3
-    page_has_new_data = False  # Track if the current page has at least one new post
-    
-    for attempt in range(max_retries):
-        response = requests.get(url)
-        
-        if response.status_code == 200:
-            data = response.json()  # Assuming the response is in JSON format
+    while True:
+        url = source["url_template"].format(page_num=page_num)
+        featured = source["featured"]
+        max_retries = 3
+        page_has_new_data = False  # Track if the current page has at least one new post
 
-            for post in data['template']['contents']:
-                link = f"https://www.gamedeveloper.com{post.get('articleUrl', '')}"
-                
-                # Check if post already exists in the database
-                cursor.execute("SELECT 1 FROM posts WHERE Link = ?", (link,))
-                if cursor.fetchone():
-                    print(f"Duplicate found for link: {link}")
-                    continue  # Skip this post if it already exists
-                
-                # If a new post is found, reset consecutive duplicate counter and mark page as having new data
-                page_has_new_data = True
+        for attempt in range(max_retries):
+            response = requests.get(url)
 
-                # Proceed to insert if no duplicate is found
-                title = clean_text(post.get('articleName', 'N/A'))
-                author = ", ".join([clean_text(contributor['name']) for contributor in post.get('contributors', [])])
-                date = format_date(post.get('date', 'N/A'))
-                summary = clean_text(post.get('articleSummary', 'N/A'))
-                thumbnail = post['thumbnail']['src'] if post.get('thumbnail') else None
-                time_to_read = post.get('timeRead', 'N/A')
-                category_name = clean_text(post.get('categoryName', 'N/A'))
+            if response.status_code == 200:
+                data = response.json()  # Assuming the response is in JSON format
 
-                cursor.execute('''
-                    INSERT OR IGNORE INTO posts (Title, Link, Authors, Date, Summary, Thumbnail, TimeToRead, CategoryName)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                ''', (title, link, author, date, summary, thumbnail, time_to_read, category_name))
-                print(f"Inserted post - {title}")
+                if not data['template']['contents']:  # Stop if no posts found on this page
+                    print(f"No more posts found on page {page_num}. Stopping.")
+                    consecutive_duplicate_pages = max_consecutive_duplicate_pages
+                    break
 
-            # Check if the page had only duplicates
-            if page_has_new_data:
-                consecutive_duplicate_pages = 0  # Reset the counter if this page had new data
+                for post in data['template']['contents']:
+                    link = f"https://www.gamedeveloper.com{post.get('articleUrl', '')}"
+
+                    # Check if post already exists in the database
+                    cursor.execute("SELECT Featured FROM posts WHERE Link = ?", (link,))
+                    existing_post = cursor.fetchone()
+                    
+                    if existing_post:
+                        # If post exists and current source is featured, update Featured to True
+                        if featured and not existing_post[0]:
+                            cursor.execute("UPDATE posts SET Featured = True WHERE Link = ?", (link,))
+                            print(f"Updated featured status for existing post - {link}")
+                        continue  # Skip to the next post
+
+                    # If a new post is found, reset consecutive duplicate counter and mark page as having new data
+                    page_has_new_data = True
+
+                    # Proceed to insert if no duplicate is found
+                    title = clean_text(post.get('articleName', 'N/A'))
+                    author = ", ".join([clean_text(contributor['name']) for contributor in post.get('contributors', [])])
+                    date = format_date(post.get('date', 'N/A'))
+                    summary = clean_text(post.get('articleSummary', 'N/A'))
+                    thumbnail = post['thumbnail']['src'] if post.get('thumbnail') else None
+                    time_to_read = post.get('timeRead', 'N/A')
+                    category_name = clean_text(post.get('categoryName', 'N/A'))
+
+                    cursor.execute('''
+                        INSERT OR IGNORE INTO posts (Title, Link, Authors, Date, Summary, Thumbnail, TimeToRead, CategoryName, Featured)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ''', (title, link, author, date, summary, thumbnail, time_to_read, category_name, featured))
+                    print(f"Inserted post - {title}")
+
+                # Check if the page had only duplicates
+                if page_has_new_data:
+                    consecutive_duplicate_pages = 0  # Reset the counter if this page had new data
+                else:
+                    consecutive_duplicate_pages += 1  # Increment if only duplicates found on this page
+
+                print(f"Retrieved data for page {page_num}")
+                time.sleep(0.5)
+                page_num += 1  # Move to the next page
+                break  # Break retry loop if successful
             else:
-                consecutive_duplicate_pages += 1  # Increment if only duplicates found on this page
-            
-            print(f"Retrieved data for page {page_num}")
-            time.sleep(0.5)
-            break  # Break retry loop if successful
-        else:
-            print(f"Attempt {attempt + 1} failed for page {page_num}. Retrying in 2 seconds...")
-            time.sleep(2)
-            if attempt == max_retries - 1:
-                print(f"Failed to retrieve data for page {page_num} after {max_retries} attempts.")
+                print(f"Attempt {attempt + 1} failed for page {page_num}. Retrying in 2 seconds...")
+                time.sleep(2)
+                if attempt == max_retries - 1:
+                    print(f"Failed to retrieve data for page {page_num} after {max_retries} attempts.")
+
+        if consecutive_duplicate_pages >= max_consecutive_duplicate_pages:
+            print(f"Stopping after {consecutive_duplicate_pages} consecutive pages with duplicates only.")
+            break  # Exit while loop when consecutive duplicates exceed the threshold
 
 # Commit changes and close the connection
 conn.commit()
@@ -111,4 +137,4 @@ with open('last_scrape_info.txt', 'w') as file:
     file.write(f"Last updated on: {last_scrape_date}. Total posts in database: {total_posts}.\n")
 
 conn.close()
-print("Data saved to Data\gamedeveloper_blogs.db")
+print("Data saved to Data/gamedeveloper_blogs.db")

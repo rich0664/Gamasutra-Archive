@@ -48,10 +48,17 @@
         <input type="date" id="endDate" />
         </div>
 
+        <select id="featuredSelect">
+            <option value="all" selected>All Posts</option>
+            <option value="featured">Only Featured</option>
+            <option value="not_featured">Only Not Featured</option>
+        </select>
+
         <select id="sortSelect">
             <option value="Date">Sort by Date</option>
             <option value="Title">Sort by Title</option>
             <option value="CategoryName">Sort by Category</option>
+            <option value="Featured">Sort by Featured</option>
         </select>
         <select id="sortOrderSelect">
             <option value="ASC">Ascending</option>
