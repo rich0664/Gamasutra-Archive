@@ -73,39 +73,41 @@ async function searchPosts(
         WHERE (Title LIKE '%' || ? || '%' OR Summary LIKE '%' || ? || '%' OR Authors LIKE '%' || ? || '%')
     `;
 
+    // Array to store query parameters
+    const params = [query, query, query];
+
     // Add category filter if not "All"
     if (category !== "All") {
         sqlQuery += ` AND CategoryName = ?`;
+        params.push(category);
     }
 
     // Add date range filters if specified
     if (startDate) {
         sqlQuery += ` AND Date >= ?`;
+        params.push(startDate);
     }
     if (endDate) {
         sqlQuery += ` AND Date <= ?`;
+        params.push(endDate);
     }
 
     // Add featured filter based on the dropdown selection
     if (featured === "featured") {
-        sqlQuery += ` AND Featured = 1`; // Featured as a boolean (1 for true)
+        sqlQuery += ` AND Featured = 1`;  // Explicitly check for integer 1
     } else if (featured === "not_featured") {
-        sqlQuery += ` AND Featured = 0`; // Not featured as boolean (0 for false)
+        sqlQuery += ` AND Featured = 0`;  // Explicitly check for integer 0
     }
 
     sqlQuery += ` ORDER BY ${sortColumn} ${sortOrder} LIMIT ? OFFSET ?`;
-
-    // Collect parameters for the query
-    const params = [query, query, query];
-    if (category !== "All") params.push(category);
-    if (startDate) params.push(startDate);
-    if (endDate) params.push(endDate);
     params.push(limit.toString(), offset.toString());
 
+    // Execute the query with the parameters array
     const results = await worker.db.query(sqlQuery, params);
-    console.log(sqlQuery, params);
     return results;
 }
+
+
 
 
 
@@ -172,17 +174,11 @@ function displayPosts(posts: any[], searchTerm: string, append = false) {
 
 // Load results based on the query and reset offset when starting a new search
 async function loadResults(
-    worker: any, 
-    query: string, 
-    sortColumn = "Date", 
-    sortOrder = "DESC",
-    category = "All", 
-    startDate = "", 
-    endDate = "", 
-    featured = "all" // Add the new parameter here
+    worker: any, query: string, sortColumn = "Date", sortOrder = "DESC",
+    category = "All", startDate = "", endDate = "", featured = "all"
 ) {
     const postList = document.getElementById("postList");
-    offset = 0;
+    offset = 0; // Reset offset for a new search
     const results = await searchPosts(worker, query, limit, offset, sortColumn, sortOrder, category, startDate, endDate, featured);
     displayPosts(results, query);
     if (postList) {
@@ -242,7 +238,6 @@ async function init() {
     const postList = document.getElementById("postList");
     if (postList) {
         postList.addEventListener("scroll", async () => {
-            // Trigger if close to the bottom
             if (postList.scrollTop + postList.clientHeight >= postList.scrollHeight - 50) {
                 offset += limit; // Increment offset for the next page of results
                 const moreResults = await searchPosts(
@@ -254,7 +249,8 @@ async function init() {
                     sortOrderSelect.value,
                     categorySelect.value,
                     startDateInput.value,
-                    endDateInput.value
+                    endDateInput.value,
+                    featuredSelect.value // Ensure featured parameter is consistently passed
                 );
                 displayPosts(moreResults, searchInput.value, true); // Append new results
             }
