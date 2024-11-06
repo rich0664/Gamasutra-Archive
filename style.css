@@ -17,6 +17,7 @@
     --search-box-background: #fff;
     --search-box-color: #333;
     --border-color: #ddd;
+    
 }
 
 body.dark-mode {
@@ -152,8 +153,10 @@ body {
 }
 
 .highlight {
-    background-color: yellow;
+    background-color:  rgb(255, 166, 0);
+    color: black;
     font-weight: bold;
+
 }
 
 .post p {
