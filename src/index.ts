@@ -27,6 +27,7 @@ nightModeToggle.addEventListener("change", () => {
 });
 
 
+
 // Fetch and display last scrape info
 fetch("last_scrape_info.txt")
     .then(response => response.text())
@@ -234,6 +235,11 @@ searchInput.addEventListener("input", () => {
         showLoading();
         reloadResults();
     }, 300);
+});
+// Save thumbnail visibility state to localStorage when toggled
+thumbnailToggle.addEventListener("change", () => {
+    localStorage.setItem("showThumbnails", String(thumbnailToggle.checked));
+    reloadResults(); // Reload results to reflect the change in thumbnail visibility
 });
 
 categorySelect.addEventListener("change", () => {
