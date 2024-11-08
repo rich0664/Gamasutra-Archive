@@ -153,7 +153,7 @@ function displayPosts(posts: any[], searchTerm: string, append = false) {
         const thumbnailHtml = showThumbnails && post.Thumbnail
             ? `<div class="thumbnail">
                  <a href="${post.Link}" target="_blank" rel="noopener noreferrer">
-                     <img src="${post.Thumbnail}" alt="Thumbnail" />
+                     <img src="${post.Thumbnail}?width=120&amp;auto=webp&amp;quality=80&amp;disable=upscale" alt="Thumbnail" />
                  </a>
                </div>`
             : "";
