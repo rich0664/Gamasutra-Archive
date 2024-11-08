@@ -172,20 +172,31 @@ function displayPosts(posts: any[], searchTerm: string, append = false) {
 
 
 
-// Load results based on the query and reset offset when starting a new search
+// Show loading indicator
+function showLoading() {
+    document.body.classList.add("loading");
+}
+
+// Hide loading indicator
+function hideLoading() {
+    document.body.classList.remove("loading");
+}
+
+// Update loadResults to show and hide the loading indicator
 async function loadResults(
     worker: any, query: string, sortColumn = "Date", sortOrder = "DESC",
     category = "All", startDate = "", endDate = "", featured = "all"
 ) {
+    showLoading();  // Show loading indicator
     const postList = document.getElementById("postList");
-    offset = 0; // Reset offset for a new search
+    offset = 0;
     const results = await searchPosts(worker, query, limit, offset, sortColumn, sortOrder, category, startDate, endDate, featured);
     displayPosts(results, query);
+    hideLoading();  // Hide loading indicator
     if (postList) {
         postList.scrollTop = 0;
     }
 }
-
 
 
 async function init() {
@@ -216,29 +227,46 @@ async function init() {
         await loadResults(worker, query, sortColumn, sortOrder, category, startDate, endDate, featured);
     };
     
-    featuredSelect.addEventListener("change", reloadResults);
+// Modify event listeners to show loading while waiting for results
+searchInput.addEventListener("input", () => {
+    clearTimeout(debounceTimeout);
+    debounceTimeout = setTimeout(() => {
+        showLoading();
+        reloadResults();
+    }, 300);
+});
 
-    searchInput.addEventListener("input", () => {
-        clearTimeout(debounceTimeout);
-        debounceTimeout = setTimeout(reloadResults, 300);
-    });
-    categorySelect.addEventListener("change", reloadResults);
-    startDateInput.addEventListener("change", reloadResults);
-    endDateInput.addEventListener("change", reloadResults);
-    sortSelect.addEventListener("change", reloadResults);
-    sortOrderSelect.addEventListener("change", reloadResults);
-
-    thumbnailToggle.addEventListener("change", () => {
-        localStorage.setItem("showThumbnails", String(thumbnailToggle.checked));
-        const query = (document.getElementById("searchInput") as HTMLInputElement).value;
-        loadResults(worker, query, sortSelect.value, sortOrderSelect.value); // Reload results to apply thumbnail change
-    });
+categorySelect.addEventListener("change", () => {
+    showLoading();
+    reloadResults();
+});
+startDateInput.addEventListener("change", () => {
+    showLoading();
+    reloadResults();
+});
+endDateInput.addEventListener("change", () => {
+    showLoading();
+    reloadResults();
+});
+sortSelect.addEventListener("change", () => {
+    showLoading();
+    reloadResults();
+});
+sortOrderSelect.addEventListener("change", () => {
+    showLoading();
+    reloadResults();
+});
+featuredSelect.addEventListener("change", () => {
+    showLoading();
+    reloadResults();
+});
 
     // Infinite scroll
     const postList = document.getElementById("postList");
     if (postList) {
         postList.addEventListener("scroll", async () => {
             if (postList.scrollTop + postList.clientHeight >= postList.scrollHeight - 50) {
+                showLoading();
                 offset += limit; // Increment offset for the next page of results
                 const moreResults = await searchPosts(
                     worker,
@@ -250,9 +278,10 @@ async function init() {
                     categorySelect.value,
                     startDateInput.value,
                     endDateInput.value,
-                    featuredSelect.value // Ensure featured parameter is consistently passed
+                    featuredSelect.value
                 );
-                displayPosts(moreResults, searchInput.value, true); // Append new results
+                displayPosts(moreResults, searchInput.value, true);
+                hideLoading();
             }
         });
     }
