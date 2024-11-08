@@ -139,7 +139,10 @@ function displayPosts(posts: any[], searchTerm: string, append = false) {
 
     posts.forEach((post: any) => {
         const postElement = document.createElement("div");
-        postElement.className = "post";
+        
+        // Assign a category class for color-coding based on category name
+        const categoryClass = `category-${post.CategoryName.toLowerCase().replace(/\s+/g, '-')}`;
+        postElement.className = `post ${categoryClass}`;
 
         // Add star if the post is featured
         const title = post.Featured ? `⭐ ${post.Title}` : post.Title;
@@ -170,6 +173,7 @@ function displayPosts(posts: any[], searchTerm: string, append = false) {
         listElement.appendChild(postElement);
     });
 }
+
 
 
 

@@ -52,8 +52,8 @@ body {
 
 #header p {
     margin: 5px 0;
-    font-size: 1em;
-    color: #ddd;
+    font-size: 0.9em;
+    color: #919191;
 }
 
 #searchContainer {
@@ -104,7 +104,6 @@ body {
 
 #postList {
     margin-top: 20px;
-    padding: 20px;
     background-color: var(--box-background);
 
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
@@ -114,7 +113,7 @@ body {
 
 .post {
     border-bottom: 1px solid #ddd;
-    padding: 10px 0;
+    padding: 10px 20px;
 }
 
 .post-container {
@@ -122,6 +121,20 @@ body {
     align-items: center; /* Centers items vertically */
     gap: 10px;
 }
+/* Define colors for each category */
+.category-design { border-left: 4px solid #f0af17; } 
+.category-business { border-left: 4px solid #50b47b; }  
+.category-programming { border-left: 4px solid #bf77d0; } 
+.category-game-platforms { border-left: 4px solid #bb933d; }  
+.category-production { border-left: 4px solid #5e70c7; } 
+.category-audio { border-left: 4px solid #7ca743; }  
+.category-art { border-left: 4px solid #964288; } 
+.category-marketing { border-left: 4px solid #b75435; } 
+.category-pc { border-left: 4px solid #43d4c6; }  
+.category-extended-reality { border-left: 4px solid #595f42; }  
+.category-console { border-left: 4px solid #487325; } 
+.category-other { border-left: 4px solid #7f8c8d; } 
+
 
 .thumbnail {
     display: flex;
