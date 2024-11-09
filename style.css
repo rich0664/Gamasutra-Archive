@@ -32,6 +32,8 @@ body.dark-mode {
 }
 
 body {
+    height: 100%;
+    overflow: hidden;
     font-family: Arial, sans-serif;
     margin: 0;
     padding: 0;
@@ -43,6 +45,7 @@ body {
     padding: 20px;
     background-color: var(--header-background);
     color: var(--header-text-color);
+    position: relative;
 }
 
 #header h1 {
@@ -55,23 +58,92 @@ body {
     font-size: 0.9em;
     color: #919191;
 }
+#mainContainer {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow:hidden;
+}
+
+/* About section for larger screens */
+#aboutSection {
+    display: block;
+}
+
+/* About button is hidden on larger screens */
+#aboutToggle {
+    display: none;
+}
+
+/* Media query for smaller screens */
+@media (max-width: 600px) {
+    body{
+        overflow-y: scroll;
+    }
+    #header {
+        padding: 10px;
+        position: sticky;
+        top:0;
+    }
+
+    #header h1 {
+        font-size: 1.5em;
+    }
+
+    /* Hide the about section and show the button on small screens */
+    #aboutSection {
+        display: none;
+    }
+    
+
+    #aboutToggle {
+        display: inline-block;
+        background: none;
+        border: none;
+        color: var(--header-text-color); /* Or another color to match the text */
+        font-size: 14px;
+        cursor: pointer;
+        text-decoration: underline;
+        padding: 0;
+    }
+    
+    #aboutToggle:hover {
+        text-decoration: none;
+    }
+}
 
 #searchContainer {
-    padding: 20px;
+    padding: 10px;
     background-color: var(--box-background);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    gap: 5px;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
 }
 
 #searchInput {
-    width: 100%;
-    padding: 10px 10px 10px 10px; /* Set padding on all sides */
-    margin: 10px 0;
+    flex: 1; /* Allows the input to fill available space without overflowing */
+    padding: 8px;
     border: 1px solid var(--border-color);
-    background-color: var(--search-box-background);
     border-radius: 4px;
+    background-color: var(--search-box-background);
     font-size: 16px;
-    color: var(search-box-color);
-    box-sizing: border-box; /* Ensures the padding and border are included within the width */
+    color: black;
+}
+
+#searchFilters {
+    display: flex;
+    align-items: center;
+    gap: 0px 10px;
+    flex-wrap: wrap;
+}
+
+#thumbnailToggleContainer {
+    display: flex;
+    align-items: center;
+    font-size: 14px;
+    color: var(--text-color);
 }
 
 
@@ -80,15 +152,22 @@ body {
 #sortOrderSelect,
 #featuredSelect,
 #startDate,
-#endDate {
-    padding: 10px;
-    margin: 10px 0;
+#endDate,
+#dateToggle {
+    padding: 5px;
+    margin: 5px 0;
+    height: 28px;
     border: 1px solid var(--border-color);
     background-color: var(--box-background);
     border-radius: 4px;
-    font-size: 16px;
+    font-size: 14px;
     color: var(--text-color);
+    cursor: pointer;
 }
+
+
+
+
 #dateContainer {
     display: inline-block;
 
@@ -103,12 +182,14 @@ body {
 }
 
 #postList {
-    margin-top: 20px;
-    background-color: var(--box-background);
 
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    max-height: 70vh;
+    background-color: var(--box-background);
+    flex-grow: 1; /* Allow postList to fill remaining space */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
     overflow-y: auto;
+}
+#noResults {
+    text-align: center;
 }
 
 .post {
@@ -176,6 +257,32 @@ body {
     margin: 5px 0;
     color: var(--text-color);
 }
+
+/* Dropdown container styling */
+.dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.dropdown-content {
+    display: none;
+    position: absolute;
+    background-color: var(--box-background);
+    box-shadow: 0px 8px 16px rgba(0, 0, 0, 0.2);
+    padding: 10px;
+    border-radius: 4px;
+    z-index: 1;
+}
+
+.dropdown-content input[type="date"] {
+    margin: 5px 0;
+}
+
+/* Show the dropdown when active */
+.dropdown.active .dropdown-content {
+    display: block;
+}
+
 
 
 /* Define diagonal stripe background animation */

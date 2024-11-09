@@ -1,38 +1,62 @@
 import { createDbWorker } from "sql.js-httpvfs";
 
+// Define worker and WebAssembly URLs
 const workerUrl = new URL("sql.js-httpvfs/dist/sqlite.worker.js", import.meta.url);
 const wasmUrl = new URL("sql.js-httpvfs/dist/sql-wasm.wasm", import.meta.url);
 
+// Pagination controls
 let offset = 0; // Track the current offset for pagination
-const limit = 20; // Number of posts to load per "page" or scroll event
+const limit = 20; // Posts per "page" or scroll event
+
+// UI Elements: Preference Toggles
 const nightModeToggle = document.getElementById("nightModeToggle") as HTMLInputElement;
 const thumbnailToggle = document.getElementById("thumbnailToggle") as HTMLInputElement;
 
-// Load preferences from localStorage
+
+// Load saved preferences for night mode and thumbnails on page load
 document.addEventListener("DOMContentLoaded", () => {
-    // Load night mode state
     const nightMode = localStorage.getItem("nightMode") === "true";
     document.body.classList.toggle("dark-mode", nightMode);
     nightModeToggle.checked = nightMode;
 
-    // Load thumbnail visibility state
     const showThumbnails = localStorage.getItem("showThumbnails") === "true";
     thumbnailToggle.checked = showThumbnails;
 });
 
-// Save night mode state to localStorage when toggled
+// Toggle night mode and save to localStorage
 nightModeToggle.addEventListener("change", () => {
     document.body.classList.toggle("dark-mode", nightModeToggle.checked);
     localStorage.setItem("nightMode", String(nightModeToggle.checked));
 });
+// Toggle the About section on mobile
+function toggleAbout() {
+    const aboutSection = document.getElementById("aboutSection");
+    const aboutToggle = document.getElementById("aboutToggle") as HTMLButtonElement;
 
+    if (aboutSection && aboutToggle) {
+        const isVisible = aboutSection.style.display === "block";
+        aboutSection.style.display = isVisible ? "none" : "block";
+        
+        // Update button text based on the visibility of aboutSection
+        aboutToggle.textContent = isVisible ? "About" : "Hide";
+    }
+}
 
+// Expose toggleAbout to the global window object
+(window as any).toggleAbout = toggleAbout;
 
-// Fetch and display last scrape info
+// UI Elements: Date Range and Filter Toggles
+const startDateInput = document.getElementById("startDate") as HTMLInputElement;
+const endDateInput = document.getElementById("endDate") as HTMLInputElement;
+const dateToggle = document.getElementById("dateToggle") as HTMLButtonElement;
+const dateDropdown = document.getElementById("dateDropdown") as HTMLElement;
+const dateOptions = document.getElementById("dateOptions") as HTMLElement;
+
+// Load last scrape info and display in header
 fetch("last_scrape_info.txt")
     .then(response => response.text())
     .then(text => {
-        const header = document.getElementById("header");
+        const header = document.getElementById("aboutSection");
         if (header) {
             const scrapeInfo = document.createElement("p");
             scrapeInfo.textContent = text;
@@ -41,10 +65,7 @@ fetch("last_scrape_info.txt")
     })
     .catch(error => console.error("Failed to load last scrape info:", error));
 
-// Save thumbnail visibility state to localStorage when toggled
-
-
-// Initialize the database worker
+// Initialize database worker for querying posts
 async function initDbWorker() {
     return await createDbWorker(
         [
@@ -62,8 +83,7 @@ async function initDbWorker() {
     );
 }
 
-
-// Function to query posts based on search input, limit, and offset for pagination
+// Query posts based on search filters, pagination, and sorting options
 async function searchPosts(
     worker: any, query: string, limit = 20, offset = 0, sortColumn = "Date", sortOrder = "DESC",
     category = "All", startDate = "", endDate = "", featured = "all"
@@ -73,17 +93,13 @@ async function searchPosts(
         FROM posts
         WHERE (Title LIKE '%' || ? || '%' OR Summary LIKE '%' || ? || '%' OR Authors LIKE '%' || ? || '%')
     `;
-
-    // Array to store query parameters
     const params = [query, query, query];
 
-    // Add category filter if not "All"
+    // Apply additional filters
     if (category !== "All") {
         sqlQuery += ` AND CategoryName = ?`;
         params.push(category);
     }
-
-    // Add date range filters if specified
     if (startDate) {
         sqlQuery += ` AND Date >= ?`;
         params.push(startDate);
@@ -92,64 +108,45 @@ async function searchPosts(
         sqlQuery += ` AND Date <= ?`;
         params.push(endDate);
     }
-
-    // Add featured filter based on the dropdown selection
     if (featured === "featured") {
-        sqlQuery += ` AND Featured = 1`;  // Explicitly check for integer 1
+        sqlQuery += ` AND Featured = 1`;
     } else if (featured === "not_featured") {
-        sqlQuery += ` AND Featured = 0`;  // Explicitly check for integer 0
+        sqlQuery += ` AND Featured = 0`;
     }
 
     sqlQuery += ` ORDER BY ${sortColumn} ${sortOrder} LIMIT ? OFFSET ?`;
     params.push(limit.toString(), offset.toString());
 
-    // Execute the query with the parameters array
-    const results = await worker.db.query(sqlQuery, params);
-    return results;
+    return await worker.db.query(sqlQuery, params);
 }
 
-
-
-
-
-
-// Function to highlight the search term
+// Highlight matching search terms in displayed text
 function highlightText(text: string, searchTerm: string): string {
     if (!searchTerm) return text;
-
     const regex = new RegExp(`(${searchTerm})`, "gi");
     return text.replace(regex, `<span class="highlight">$1</span>`);
 }
 
-// Function to display posts with an optional parameter to append results
+// Display posts in the list with optional appending for pagination
 function displayPosts(posts: any[], searchTerm: string, append = false) {
     const listElement = document.getElementById("postList");
     if (!listElement) return;
 
-    // Clear the list if not appending (initial load or new search)
-    if (!append) listElement.innerHTML = "";
+    if (!append) listElement.innerHTML = ""; // Clear list if not appending
+    const showThumbnails = thumbnailToggle.checked;
 
-    const showThumbnails = thumbnailToggle.checked; // Get checkbox state
-
-    // If there are no posts and it's not appending, show "No results found"
     if (posts.length === 0 && !append) {
-        listElement.innerHTML = "<p>No results found.</p>";
+        listElement.innerHTML = "<p id='noResults'>No results found.</p>";
         return;
     }
 
     posts.forEach((post: any) => {
         const postElement = document.createElement("div");
-        
-        // Assign a category class for color-coding based on category name
         const categoryClass = `category-${post.CategoryName.toLowerCase().replace(/\s+/g, '-')}`;
         postElement.className = `post ${categoryClass}`;
-
-        // Add star if the post is featured
         const title = post.Featured ? `⭐ ${post.Title}` : post.Title;
         const highlightedTitle = highlightText(title, searchTerm);
         const postLink = `<a href="${post.Link}" target="_blank" rel="noopener noreferrer">${highlightedTitle}</a>`;
-
-        // Conditionally include clickable thumbnail
         const thumbnailHtml = showThumbnails && post.Thumbnail
             ? `<div class="thumbnail">
                  <a href="${post.Link}" target="_blank" rel="noopener noreferrer">
@@ -174,130 +171,117 @@ function displayPosts(posts: any[], searchTerm: string, append = false) {
     });
 }
 
+// Update date toggle button text based on selected range
+function updateDateToggleText() {
+    const startDate = startDateInput.value;
+    const endDate = endDateInput.value;
+
+    if (startDate && endDate) {
+        dateToggle.textContent = `From: ${startDate} To: ${endDate}`;
+    } else if (startDate) {
+        dateToggle.textContent = `From: ${startDate}`;
+    } else if (endDate) {
+        dateToggle.textContent = `To: ${endDate}`;
+    } else {
+        dateToggle.textContent = "Select Date Range";
+    }
+}
 
 
+// Toggle the dropdown and update date text
+dateToggle.addEventListener("click", () => {
+    dateDropdown.classList.toggle("active");
+});
 
-// Show loading indicator
+// Close the dropdown when clicking outside and update button text
+document.addEventListener("click", (event) => {
+    if (!dateDropdown.contains(event.target as Node)) {
+        dateDropdown.classList.remove("active");
+        updateDateToggleText();  // Update the text when closing
+    }
+});
+
+// Show and hide loading indicator for user feedback during data fetching
 function showLoading() {
     document.body.classList.add("loading");
 }
-
-// Hide loading indicator
 function hideLoading() {
     document.body.classList.remove("loading");
 }
 
-// Update loadResults to show and hide the loading indicator
+// Load and display initial or updated results based on user inputs
 async function loadResults(
     worker: any, query: string, sortColumn = "Date", sortOrder = "DESC",
     category = "All", startDate = "", endDate = "", featured = "all"
 ) {
-    showLoading();  // Show loading indicator
+    showLoading();
     const postList = document.getElementById("postList");
     offset = 0;
     const results = await searchPosts(worker, query, limit, offset, sortColumn, sortOrder, category, startDate, endDate, featured);
     displayPosts(results, query);
-    hideLoading();  // Hide loading indicator
+    hideLoading();
     if (postList) {
         postList.scrollTop = 0;
     }
 }
 
-
+// Initialize search and filter elements and set event listeners
 async function init() {
     const worker = await initDbWorker();
-
     await loadResults(worker, "", "Date", "DESC", "All");
 
     let debounceTimeout: NodeJS.Timeout;
     const searchInput = document.getElementById("searchInput") as HTMLInputElement;
     const categorySelect = document.getElementById("categorySelect") as HTMLSelectElement;
-    const startDateInput = document.getElementById("startDate") as HTMLInputElement;
-    const endDateInput = document.getElementById("endDate") as HTMLInputElement;
     const sortSelect = document.getElementById("sortSelect") as HTMLSelectElement;
     const sortOrderSelect = document.getElementById("sortOrderSelect") as HTMLSelectElement;
-
-    // Helper to reload results
     const featuredSelect = document.getElementById("featuredSelect") as HTMLSelectElement;
 
-    // Helper to reload results
+    // Reload results when a filter or sort option changes
     const reloadResults = async () => {
-        const query = searchInput.value;
-        const sortColumn = sortSelect.value;
-        const sortOrder = sortOrderSelect.value;
-        const category = categorySelect.value;
-        const startDate = startDateInput.value;
-        const endDate = endDateInput.value;
-        const featured = featuredSelect.value;
-        await loadResults(worker, query, sortColumn, sortOrder, category, startDate, endDate, featured);
+        await loadResults(worker, searchInput.value, sortSelect.value, sortOrderSelect.value, categorySelect.value, startDateInput.value, endDateInput.value, featuredSelect.value);
     };
-    
-// Modify event listeners to show loading while waiting for results
-searchInput.addEventListener("input", () => {
-    clearTimeout(debounceTimeout);
-    debounceTimeout = setTimeout(() => {
-        showLoading();
+
+    // Debounce search input to avoid excessive reloads
+    searchInput.addEventListener("input", () => {
+        clearTimeout(debounceTimeout);
+        debounceTimeout = setTimeout(reloadResults, 300);
+    });
+
+    // Apply changes on toggles and other filter inputs
+    thumbnailToggle.addEventListener("change", () => {
+        localStorage.setItem("showThumbnails", String(thumbnailToggle.checked));
         reloadResults();
-    }, 300);
-});
-// Save thumbnail visibility state to localStorage when toggled
-thumbnailToggle.addEventListener("change", () => {
-    localStorage.setItem("showThumbnails", String(thumbnailToggle.checked));
-    reloadResults(); // Reload results to reflect the change in thumbnail visibility
-});
+    });
 
-categorySelect.addEventListener("change", () => {
-    showLoading();
-    reloadResults();
-});
-startDateInput.addEventListener("change", () => {
-    showLoading();
-    reloadResults();
-});
-endDateInput.addEventListener("change", () => {
-    showLoading();
-    reloadResults();
-});
-sortSelect.addEventListener("change", () => {
-    showLoading();
-    reloadResults();
-});
-sortOrderSelect.addEventListener("change", () => {
-    showLoading();
-    reloadResults();
-});
-featuredSelect.addEventListener("change", () => {
-    showLoading();
-    reloadResults();
-});
+    categorySelect.addEventListener("change", reloadResults);
+    startDateInput.addEventListener("change", () => {
+        updateDateToggleText();
+        reloadResults();
+    });
+    
+    endDateInput.addEventListener("change", () => {
+        updateDateToggleText();
+        reloadResults();
+    });
+    sortSelect.addEventListener("change", reloadResults);
+    sortOrderSelect.addEventListener("change", reloadResults);
+    featuredSelect.addEventListener("change", reloadResults);
 
-    // Infinite scroll
+    // Infinite scroll listener to load more results when scrolled near the bottom
     const postList = document.getElementById("postList");
     if (postList) {
         postList.addEventListener("scroll", async () => {
             if (postList.scrollTop + postList.clientHeight >= postList.scrollHeight - 50) {
                 showLoading();
-                offset += limit; // Increment offset for the next page of results
-                const moreResults = await searchPosts(
-                    worker,
-                    searchInput.value,
-                    limit,
-                    offset,
-                    sortSelect.value,
-                    sortOrderSelect.value,
-                    categorySelect.value,
-                    startDateInput.value,
-                    endDateInput.value,
-                    featuredSelect.value
-                );
+                offset += limit;
+                const moreResults = await searchPosts(worker, searchInput.value, limit, offset, sortSelect.value, sortOrderSelect.value, categorySelect.value, startDateInput.value, endDateInput.value, featuredSelect.value);
                 displayPosts(moreResults, searchInput.value, true);
                 hideLoading();
             }
         });
     }
 }
-
-
 
 // Start the app
 init();
