@@ -73,7 +73,8 @@ async function initDbWorker() {
                 from: "inline",
                 config: {
                     serverMode: "full",
-                    url: "https://rich0664.github.io/Gamasutra-Archive/Data/gamedeveloper_blogs.db",
+                    // Remove the dot! The leading slash means "Start at the root of the server"
+                    url: "/Data/gamedeveloper_blogs.db", 
                     requestChunkSize: 4096,
                 },
             },
