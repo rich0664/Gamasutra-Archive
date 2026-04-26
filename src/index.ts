@@ -72,11 +72,13 @@ async function initDbWorker() {
             {
                 from: "inline",
                 config: {
-                    serverMode: "full",
-                    url: "https://rich0664.github.io/Gamasutra-Archive/Data/gamedeveloper_blogs.sqlite3",
+                    serverMode: "chunked",
+                    urlPrefix: "https://rich0664.github.io/Gamasutra-Archive/Data/gamedeveloper_blogs.sqlite3.",
                     requestChunkSize: 4096,
-                    databaseLengthBytes: 14942208
-                }as any,
+                    serverChunkSize:14942208,
+                    databaseLengthBytes: 14942208,
+                    suffixLength: 1
+                },
             },
         ],
         workerUrl.toString(),
