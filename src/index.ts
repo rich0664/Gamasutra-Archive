@@ -75,7 +75,8 @@ async function initDbWorker() {
                     serverMode: "full",
                     url: "https://rich0664.github.io/Gamasutra-Archive/Data/gamedeveloper_blogs.sqlite3",
                     requestChunkSize: 4096,
-                },
+                    fileLength: 14942208
+                }as any,
             },
         ],
         workerUrl.toString(),
