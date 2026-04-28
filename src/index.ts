@@ -73,10 +73,10 @@ async function initDbWorker() {
                 from: "inline",
                 config: {
                     serverMode: "chunked",
-                    urlPrefix: "https://rich0664.github.io/Gamasutra-Archive/Data/gamedeveloper_blogs.sqlite3.",
+                    urlPrefix: "Data/gamedeveloper_blogs.sqlite3.",
                     requestChunkSize: 4096,
-                    serverChunkSize:14942208,
-                    databaseLengthBytes: 14942208,
+                    serverChunkSize:19001344,
+                    databaseLengthBytes: 19001344,
                     suffixLength: 1
                 },
             },
@@ -87,12 +87,13 @@ async function initDbWorker() {
 }
 
 // Query posts based on search filters, pagination, and sorting options
+// Query posts based on search filters, pagination, and sorting options
 async function searchPosts(
     worker: any, query: string, limit = 20, offset = 0, sortColumn = "Date", sortOrder = "DESC",
-    category = "All", startDate = "", endDate = "", featured = "all"
+    category = "All", startDate = "", endDate = "", type = "all"
 ) {
     let sqlQuery = `
-        SELECT Title, Authors, Date, Summary, CategoryName, Link, Thumbnail, Featured
+        SELECT Title, Authors, Date, Summary, CategoryName, Link, Thumbnail, Type
         FROM posts
         WHERE (Title LIKE '%' || ? || '%' OR Summary LIKE '%' || ? || '%' OR Authors LIKE '%' || ? || '%')
     `;
@@ -111,10 +112,9 @@ async function searchPosts(
         sqlQuery += ` AND Date <= ?`;
         params.push(endDate);
     }
-    if (featured === "featured") {
-        sqlQuery += ` AND Featured = 1`;
-    } else if (featured === "not_featured") {
-        sqlQuery += ` AND Featured = 0`;
+    if (type !== "all") {
+        sqlQuery += ` AND Type = ?`;
+        params.push(type);
     }
 
     sqlQuery += ` ORDER BY ${sortColumn} ${sortOrder} LIMIT ? OFFSET ?`;
@@ -147,9 +147,20 @@ function displayPosts(posts: any[], searchTerm: string, append = false) {
         const postElement = document.createElement("div");
         const categoryClass = `category-${post.CategoryName.toLowerCase().replace(/\s+/g, '-')}`;
         postElement.className = `post ${categoryClass}`;
-        const title = post.Featured ? `⭐ ${post.Title}` : post.Title;
+        
+        // --- NEW EMOJI LOGIC ---
+        let titlePrefix = "";
+        if (post.Type === "Featured Blog") {
+            titlePrefix = "⭐ ";
+        } else if (post.Type === "Feature") {
+            titlePrefix = "📰 ";
+        }
+        const title = `${titlePrefix}${post.Title}`;
+        // -----------------------
+
         const highlightedTitle = highlightText(title, searchTerm);
         const postLink = `<a href="${post.Link}" target="_blank" rel="noopener noreferrer">${highlightedTitle}</a>`;
+        
         const thumbnailHtml = showThumbnails && post.Thumbnail
             ? `<div class="thumbnail">
                  <a href="${post.Link}" target="_blank" rel="noopener noreferrer">
@@ -215,12 +226,12 @@ function hideLoading() {
 // Load and display initial or updated results based on user inputs
 async function loadResults(
     worker: any, query: string, sortColumn = "Date", sortOrder = "DESC",
-    category = "All", startDate = "", endDate = "", featured = "all"
+    category = "All", startDate = "", endDate = "", type = "all"
 ) {
     showLoading();
     const postList = document.getElementById("postList");
     offset = 0;
-    const results = await searchPosts(worker, query, limit, offset, sortColumn, sortOrder, category, startDate, endDate, featured);
+    const results = await searchPosts(worker, query, limit, offset, sortColumn, sortOrder, category, startDate, endDate, type); // <--- pass type here
     displayPosts(results, query);
     hideLoading();
     if (postList) {
@@ -238,11 +249,11 @@ async function init() {
     const categorySelect = document.getElementById("categorySelect") as HTMLSelectElement;
     const sortSelect = document.getElementById("sortSelect") as HTMLSelectElement;
     const sortOrderSelect = document.getElementById("sortOrderSelect") as HTMLSelectElement;
-    const featuredSelect = document.getElementById("featuredSelect") as HTMLSelectElement;
+    const typeSelect = document.getElementById("typeSelect") as HTMLSelectElement;
 
     // Reload results when a filter or sort option changes
-    const reloadResults = async () => {
-        await loadResults(worker, searchInput.value, sortSelect.value, sortOrderSelect.value, categorySelect.value, startDateInput.value, endDateInput.value, featuredSelect.value);
+  const reloadResults = async () => {
+        await loadResults(worker, searchInput.value, sortSelect.value, sortOrderSelect.value, categorySelect.value, startDateInput.value, endDateInput.value, typeSelect.value); // <--- typeSelect
     };
 
     // Debounce search input to avoid excessive reloads
@@ -269,7 +280,7 @@ async function init() {
     });
     sortSelect.addEventListener("change", reloadResults);
     sortOrderSelect.addEventListener("change", reloadResults);
-    featuredSelect.addEventListener("change", reloadResults);
+    typeSelect.addEventListener("change", reloadResults);
 
     // Infinite scroll listener to load more results when scrolled near the bottom
     const postList = document.getElementById("postList");
@@ -278,7 +289,7 @@ async function init() {
             if (postList.scrollTop + postList.clientHeight >= postList.scrollHeight - 50) {
                 showLoading();
                 offset += limit;
-                const moreResults = await searchPosts(worker, searchInput.value, limit, offset, sortSelect.value, sortOrderSelect.value, categorySelect.value, startDateInput.value, endDateInput.value, featuredSelect.value);
+                const moreResults = await searchPosts(worker, searchInput.value, limit, offset, sortSelect.value, sortOrderSelect.value, categorySelect.value, startDateInput.value, endDateInput.value, typeSelect.value);
                 displayPosts(moreResults, searchInput.value, true);
                 hideLoading();
             }
