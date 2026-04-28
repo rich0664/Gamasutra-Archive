@@ -89,7 +89,7 @@ async function initDbWorker() {
                 from: "inline",
                 config: {
                     serverMode: "chunked",
-                    urlPrefix: "/Data/gamedeveloper_blogs.sqlite3.",
+                    urlPrefix: "https://rich0664.github.io/Gamasutra-Archive/Data/gamedeveloper_blogs.sqlite3.",
                     requestChunkSize: 4096, 
                     serverChunkSize: dbSize,       // Set server chunk size to total DB size
                     databaseLengthBytes: dbSize,   // Set database length to total DB size
