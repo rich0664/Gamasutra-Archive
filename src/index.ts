@@ -66,17 +66,33 @@ fetch("last_scrape_info.txt")
     .catch(error => console.error("Failed to load last scrape info:", error));
 
 // Initialize database worker for querying posts
+// Initialize database worker for querying posts
 async function initDbWorker() {
+    // 1. Fetch the database size from the newly generated text file
+    let dbSize = 0; // Fallback default size
+    try {
+        const response = await fetch("db_size.txt");
+        if (response.ok) {
+            const sizeText = await response.text();
+            dbSize = parseInt(sizeText.trim(), 10);
+        } else {
+            console.error("Could not load db_size.txt");
+        }
+    } catch (error) {
+        console.error("Failed to fetch database size:", error);
+    }
+
+    // 2. Initialize the worker using the dynamic size
     return await createDbWorker(
         [
             {
                 from: "inline",
                 config: {
                     serverMode: "chunked",
-                    urlPrefix: "Data/gamedeveloper_blogs.sqlite3.",
-                    requestChunkSize: 4096,
-                    serverChunkSize:19001344,
-                    databaseLengthBytes: 19001344,
+                    urlPrefix: "/Data/gamedeveloper_blogs.sqlite3.",
+                    requestChunkSize: 4096, 
+                    serverChunkSize: dbSize,       // Set server chunk size to total DB size
+                    databaseLengthBytes: dbSize,   // Set database length to total DB size
                     suffixLength: 1
                 },
             },
