@@ -13,7 +13,7 @@ KEYWORDS = [
     {"slug": "featured-blogs", "type": "Featured Blog"},
     {"slug": "features", "type": "Feature"}
 ]
-DB_NAME = "Data/gamedeveloper_blogs.sqlite3.0"
+DB_NAME = "Data/gamedeveloper_blogs.sqlite3.1"
 INFO_FILE = "last_scrape_info.txt"
 SIZE_FILE = "db_size.txt"
 
@@ -167,15 +167,27 @@ def parse_articles(raw_json, source_type):
 
     # Precise Traversal
     try:
-        # data[0] is the root map
-        root_map = data[0]
-        
-        # loader_data is at index 2
-        loader_data = resolve_val(2)
+        # data[0] is usually the root map in newer Remix versions
+        # We search for the dict that contains the keyword route
+        loader_data = None
+        for i in range(min(5, len(data))):
+            item = resolve_val(i)
+            if isinstance(item, dict):
+                for k in item.keys():
+                    res_k = resolve_val(int(k[1:])) if k.startswith("_") else k
+                    if isinstance(res_k, str) and ("keyword" in res_k or "$slug" in res_k):
+                        loader_data = item
+                        break
+            if loader_data: break
+
+        if not loader_data:
+            # Fallback to index 2 if search fails (legacy)
+            loader_data = resolve_val(2)
+
         if not isinstance(loader_data, dict):
             return []
-            
-        # Find route data - search for key that resolves to 'routes/keyword.$slug' or contains keyword
+
+        # Find route data
         route_data = None
         for k, v in loader_data.items():
             resolved_k = resolve_val(int(k[1:])) if k.startswith("_") else k
