@@ -96,7 +96,8 @@ def fetch_category_page(keyword, page):
 
 def parse_articles(raw_json, source_type):
     """
-    Parses the Remix .data format to extract full post data using robust index mapping.
+    Parses the Remix .data format to extract post data from the main content list.
+    Filters out 'Sponsored Content' and sidebar items.
     """
     try:
         data = json.loads(raw_json)
@@ -117,40 +118,33 @@ def parse_articles(raw_json, source_type):
             elif val == "timeRead": key_map["TimeToRead"] = f"_{i}"
             elif val == "contributors": key_map["Authors"] = f"_{i}"
             elif val == "name": key_map["AuthorName"] = f"_{i}"
+            elif val == "loaderData": key_map["loaderData"] = f"_{i}"
+            elif val == "root": key_map["root"] = f"_{i}"
+            elif val == "data": key_map["data"] = f"_{i}"
+            elif val == "template": key_map["template"] = f"_{i}"
+            elif val == "contents": key_map["contents"] = f"_{i}"
 
     def resolve_val(val, recursive=True):
         if isinstance(val, int) and 0 <= val < len(data):
             return data[val]
         if recursive and isinstance(val, dict):
-            # Check for de-duplicated single-key dictionary reference
             if len(val) == 1:
                 k = list(val.keys())[0]
                 if k.startswith("_") and isinstance(val[k], int):
                     return resolve_val(val[k], recursive=recursive)
-            
             return {k: resolve_val(v, recursive=recursive) for k, v in val.items()}
-            
         return val
 
     def get_thumbnail_url(thumb_val):
-        # Initial resolution of the index/dict
         resolved = resolve_val(thumb_val, recursive=False)
-        
-        # If it's an index to another dict
         if isinstance(resolved, int):
             resolved = resolve_val(resolved, recursive=False)
-            
         if isinstance(resolved, str): return resolved
-        
         if isinstance(resolved, dict):
-            # Known thumbnail keys: _48 is often the URL
-            # But the value at _48 might itself be an index
             if '_48' in resolved:
                 url_candidate = resolve_val(resolved['_48'], recursive=False)
                 if isinstance(url_candidate, str) and url_candidate.startswith("http"):
                     return url_candidate
-            
-            # Recursive fallback for other fields if needed, but thumbnails are usually simple
             for v in resolved.values():
                 res_v = resolve_val(v, recursive=False)
                 if isinstance(res_v, str) and res_v.startswith("http"):
@@ -161,10 +155,8 @@ def parse_articles(raw_json, source_type):
         authors_list = resolve_val(authors_val)
         if not isinstance(authors_list, list):
             return "N/A"
-        
         names = []
         name_key = key_map.get("AuthorName", "_61")
-
         for auth_idx in authors_list:
             auth_obj = resolve_val(auth_idx)
             if isinstance(auth_obj, dict) and name_key in auth_obj:
@@ -173,29 +165,63 @@ def parse_articles(raw_json, source_type):
                 names.append(clean_name)
         return ", ".join(names) if names else "N/A"
 
-    articles = []
-    
-    # Iterate through all objects in the flattened array to find article candidates
-    for item in data:
-        if isinstance(item, dict) and key_map.get("Title") in item and key_map.get("Link") in item:
-            title = resolve_val(item[key_map["Title"]])
-            link = resolve_val(item[key_map["Link"]])
+    # Precise Traversal
+    try:
+        # data[0] is the root map
+        root_map = data[0]
+        
+        # loader_data is at index 2
+        loader_data = resolve_val(2)
+        if not isinstance(loader_data, dict):
+            return []
             
-            if not isinstance(title, str) or not isinstance(link, str) or not link.startswith("/"):
+        # Find route data - search for key that resolves to 'routes/keyword.$slug' or contains keyword
+        route_data = None
+        for k, v in loader_data.items():
+            resolved_k = resolve_val(int(k[1:])) if k.startswith("_") else k
+            if isinstance(resolved_k, str) and ("keyword" in resolved_k or "$slug" in resolved_k):
+                route_data = resolve_val(v)
+                break
+        
+        if not route_data: return []
+
+        # Navigate: data -> template -> contents
+        data_inner = resolve_val(route_data.get(key_map.get("data", "_3")))
+        if not data_inner: return []
+        
+        template = resolve_val(data_inner.get(key_map.get("template")))
+        if not template: return []
+        
+        contents_indices = resolve_val(template.get(key_map.get("contents")))
+        if not contents_indices or not isinstance(contents_indices, list):
+            return []
+
+        articles = []
+        for idx in contents_indices:
+            item = resolve_val(idx)
+            if not isinstance(item, dict): continue
+            
+            title = resolve_val(item.get(key_map.get("Title")))
+            link = resolve_val(item.get(key_map.get("Link")))
+            category = resolve_val(item.get(key_map.get("CategoryName"), "N/A"), recursive=False)
+
+            if not isinstance(title, str) or not isinstance(link, str):
                 continue
                 
+            # Filter out Sponsored Content
+            if category == "Sponsored Content" or "sponsored content" in title.lower():
+                print(f"[*] Skipping Sponsored Content: {title}")
+                continue
+
             date = resolve_val(item.get(key_map.get("Date"), "N/A"), recursive=False)
             summary = resolve_val(item.get(key_map.get("Summary"), "N/A"), recursive=False)
             thumbnail = get_thumbnail_url(item.get(key_map.get("Thumbnail")))
-            category = resolve_val(item.get(key_map.get("CategoryName"), "N/A"), recursive=False)
             time_read = resolve_val(item.get(key_map.get("TimeToRead"), "N/A"), recursive=False)
             authors = get_author_names(item.get(key_map.get("Authors")))
 
-            full_url = BASE_URL + link
-
             articles.append({
                 "Title": clean_text(title),
-                "Link": full_url,
+                "Link": BASE_URL + link if link.startswith("/") else link,
                 "Authors": clean_text(authors),
                 "Date": format_date(date),
                 "Summary": clean_text(summary),
@@ -204,16 +230,11 @@ def parse_articles(raw_json, source_type):
                 "CategoryName": clean_text(category),
                 "Type": source_type
             })
-
-    # Deduplicate by link within the same page
-    unique_found = []
-    seen_links = set()
-    for art in articles:
-        if art['Link'] not in seen_links:
-            unique_found.append(art)
-            seen_links.add(art['Link'])
             
-    return unique_found
+        return articles
+    except Exception as e:
+        print(f"[!] Error in precise traversal: {e}")
+        return []
 
 def main():
     conn = setup_db()
@@ -285,7 +306,6 @@ def main():
     total_posts = cursor.fetchone()[0]
     last_scrape_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-    
     with open(INFO_FILE, 'w') as file:
         file.write(f"Last updated on: {last_scrape_date}. Total posts in database: {total_posts}.\n")
 
