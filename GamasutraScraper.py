@@ -13,7 +13,7 @@ KEYWORDS = [
     {"slug": "featured-blogs", "type": "Featured Blog"},
     {"slug": "features", "type": "Feature"}
 ]
-DB_NAME = "Data/gamedeveloper_blogs.sqlite3.1"
+DB_NAME = "Data/gamedeveloper_blogs.sqlite3.0"
 INFO_FILE = "last_scrape_info.txt"
 SIZE_FILE = "db_size.txt"
 
